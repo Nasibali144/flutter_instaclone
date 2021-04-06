@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "18140945445",
+    "firebase_url": "https://insta-clone-with-teacher-default-rtdb.firebaseio.com",
+    "project_id": "insta-clone-with-teacher",
+    "storage_bucket": "insta-clone-with-teacher.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:18140945445:android:bf8742d1efd6d5093ab3cc",
+        "android_client_info": {
+          "package_name": "com.datasite.flutter_instaclone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "18140945445-e3jdcgcgqv3h5m9oufc0bdrpv9r2ptls.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfgUZkDlSNgw_JN3-ZEUJl3xwVUtMXclc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "18140945445-e3jdcgcgqv3h5m9oufc0bdrpv9r2ptls.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

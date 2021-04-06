@@ -1,0 +1,38 @@
+name: flutter_instaclone
+description: A new Flutter application.
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+
+  cupertino_icons: ^1.0.2
+  image_picker: ^0.6.6+5
+  flutter_icons: ^1.1.0
+  cached_network_image: ^2.5.0
+  fluttertoast: ^7.1.1
+  shared_preferences: ^2.0.5
+  firebase_auth: ^0.16.0
+  firebase_core: ^0.4.4
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+
+  fonts:
+    - family: Billabong
+      fonts:
+        - asset: assets/fonts/Billabong.ttf
