@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_icons/flutter_icons.dart';
 import 'package:flutter_instaclone/models/post_model.dart';
+import 'package:flutter_instaclone/services/data_service.dart';
+import 'package:flutter_instaclone/services/util_service.dart';
 
 class MyFeedPage extends StatefulWidget {
 
@@ -13,23 +15,66 @@ class MyFeedPage extends StatefulWidget {
 }
 
 class _MyFeedPageState extends State<MyFeedPage> {
-
+  bool isLoading = false;
   List<Post> items = new List();
 
-  String post_img1 = "https://firebasestorage.googleapis.com/v0/b/koreanguideway.appspot.com/o/develop%2Fpost.png?alt=media&token=f0b1ba56-4bf4-4df2-9f43-6b8665cdc964";
-  String post_img2 = "https://firebasestorage.googleapis.com/v0/b/koreanguideway.appspot.com/o/develop%2Fpost2.png?alt=media&token=ac0c131a-4e9e-40c0-a75a-88e586b28b72";
+  void _apiLoadFeeds() {
+    setState(() {
+      isLoading = true;
+    });
+    DataService.loadFeeds().then((value) => {
+      _resLoadFeeds(value)
+    });
+  }
+
+  void _resLoadFeeds(List<Post> posts) {
+    setState(() {
+      items = posts;
+      isLoading = false;
+    });
+  }
+
+  void _apiPostLike(Post post) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    await DataService.likePost(post, true);
+    setState(() {
+      isLoading = false;
+      post.liked = true;
+    });
+  }
+
+  void _apiPostUnLike(Post post) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    await DataService.likePost(post, false);
+    setState(() {
+      isLoading = false;
+      post.liked = false;
+    });
+  }
+
+  _actionRemovePost(Post post) async {
+    var result = await Utils.dialogCommon(context, "Remove", "Do oyu want to remove this post?", false);
+
+    if(result != null && result) {
+      setState(() {
+        isLoading = true;
+      });
+      DataService.removePost(post).then((value) => {
+        _apiLoadFeeds(),
+      });
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    items.add(Post(
-      img_post: post_img1,
-      caption: "Discover more great images on our sponsor's site",
-    ));
-    items.add(Post(
-      img_post: post_img2,
-      caption: "Discover more great images on our sponsor's site",
-    ));
+    _apiLoadFeeds();
   }
 
   @override
@@ -50,11 +95,17 @@ class _MyFeedPageState extends State<MyFeedPage> {
           )
         ],
       ),
-      body: ListView.builder(
-        itemCount: items.length,
-        itemBuilder: (ctx, index) {
-          return _itemOfPost(items[index]);
-        },
+      body: Stack(
+        children: [
+          ListView.builder(
+            itemCount: items.length,
+            itemBuilder: (ctx, index) {
+              return _itemOfPost(items[index]);
+            },
+          ),
+
+          isLoading ? Center(child: CircularProgressIndicator(),) : SizedBox.shrink(),
+        ],
       ),
     );
   }
@@ -81,30 +132,42 @@ class _MyFeedPageState extends State<MyFeedPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("User Name",  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),),
-                        Text("February 10, 20:00"),
+                        Text(post.fullname,  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),),
+                        Text(post.date),
                       ],
                     ),
                   ],
                 ),
-                IconButton(onPressed: (){}, icon: Icon(SimpleLineIcons.options,),),
+                post.mine ? IconButton(onPressed: (){
+                  _actionRemovePost(post);
+                }, icon: Icon(SimpleLineIcons.options,),) : SizedBox.shrink(),
               ],
             ),
           ),
 
           // #image
           CachedNetworkImage(
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.width,
             imageUrl: post.img_post,
             fit: BoxFit.cover,
-            placeholder: (context, url) => CircularProgressIndicator(),
+            placeholder: (context, url) => Center(child: CircularProgressIndicator()),
             errorWidget: (context, url, error) => Icon(Icons.error),
           ),
 
           //#like #share
           Row(
             children: [
-              IconButton(onPressed: () {}, icon: Icon(FontAwesome.heart_o,),),
-              IconButton(onPressed: () {}, icon: Icon(FontAwesome.send,),),
+              IconButton(onPressed: () {
+                if(!post.liked) {
+                  _apiPostLike(post);
+                } else {
+                  _apiPostUnLike(post);
+                }
+              },
+                icon: post.liked ? Icon(FontAwesome.heart, color: Colors.red,) : Icon(FontAwesome.heart_o,),
+              ),
+              IconButton(onPressed: () {}, icon: Icon(Icons.share_outlined,),),
             ],
           ),
 

@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_icons/flutter_icons.dart';
 import 'package:flutter_instaclone/models/post_model.dart';
+import 'package:flutter_instaclone/services/data_service.dart';
+import 'package:flutter_instaclone/services/util_service.dart';
 
 class MyLikesPage extends StatefulWidget {
   @override
@@ -10,21 +12,51 @@ class MyLikesPage extends StatefulWidget {
 
 class _MyLikesPageState extends State<MyLikesPage> {
   List<Post> items = new List();
+  bool isLoading = false;
 
-  String post_img1 = "https://firebasestorage.googleapis.com/v0/b/koreanguideway.appspot.com/o/develop%2Fpost.png?alt=media&token=f0b1ba56-4bf4-4df2-9f43-6b8665cdc964";
-  String post_img2 = "https://firebasestorage.googleapis.com/v0/b/koreanguideway.appspot.com/o/develop%2Fpost2.png?alt=media&token=ac0c131a-4e9e-40c0-a75a-88e586b28b72";
+  void _apiLoadLikes() {
+    setState(() {
+      isLoading = true;
+    });
+    DataService.loadLikes().then((value) => {
+      _resLoadLikes(value)
+    });
+  }
+
+  void _resLoadLikes(List<Post> posts) {
+    if (this.mounted) setState(() {
+      items = posts;
+      isLoading = false;
+    });
+  }
+
+  void _apiPostUnlike(Post post) {
+    if (this.mounted) setState(() {
+      isLoading = true;
+      post.liked = false;
+    });
+    DataService.likePost(post, false).then((value) => {
+      _apiLoadLikes()
+    });
+  }
+
+  _actionRemovePost(Post post) async {
+    var result = await Utils.dialogCommon(context, "Remove", "Do oyu want to remove this post?", false);
+
+    if(result != null && result) {
+      setState(() {
+        isLoading = true;
+      });
+      DataService.removePost(post).then((value) => {
+        _apiLoadLikes(),
+      });
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    items.add(Post(
-      img_post: post_img1,
-      caption: "Discover more great images on our sponsor's site",
-    ));
-    items.add(Post(
-      img_post: post_img2,
-      caption: "Discover more great images on our sponsor's site",
-    ));
+    _apiLoadLikes();
   }
 
   @override
@@ -37,11 +69,24 @@ class _MyLikesPageState extends State<MyLikesPage> {
         centerTitle: true,
         title: Text("Likes", style: TextStyle(color: Colors.black, fontSize: 30, fontFamily: "Billabong"),),
       ),
-      body: ListView.builder(
-        itemCount: items.length,
-        itemBuilder: (ctx, index) {
-          return _itemOfPost(items[index]);
-        },
+      body: Stack(
+        children: [
+          items.length > 0 ?
+          ListView.builder(
+            itemCount: items.length,
+            itemBuilder: (ctx, index) {
+              return _itemOfPost(items[index]);
+            },
+          )
+          : Center(
+            child: Text("No liked posts"),
+          ),
+
+          isLoading ? Center(
+            child: CircularProgressIndicator(),
+          )
+              : SizedBox.shrink(),
+        ],
       ),
     );
   }
@@ -74,23 +119,33 @@ class _MyLikesPageState extends State<MyLikesPage> {
                     ),
                   ],
                 ),
-                IconButton(onPressed: (){}, icon: Icon(SimpleLineIcons.options,),),
+                post.mine ? IconButton(onPressed: (){
+                  _actionRemovePost(post);
+                }, icon: Icon(SimpleLineIcons.options,),) : SizedBox.shrink(),
               ],
             ),
           ),
 
           // #image
           CachedNetworkImage(
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.width,
             imageUrl: post.img_post,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => CircularProgressIndicator(),
+            placeholder: (context, url) => Center(child: CircularProgressIndicator(),),
             errorWidget: (context, url, error) => Icon(Icons.error),
+            fit: BoxFit.cover,
           ),
-
           //#like #share
           Row(
             children: [
-              IconButton(onPressed: () {}, icon: Icon(FontAwesome.heart, color: Colors.red,),),
+              IconButton(
+                onPressed: () {
+                  if(post.liked) {
+                    _apiPostUnlike(post);
+                  }
+                },
+                icon: post.liked ? Icon(FontAwesome.heart, color: Colors.red,) : Icon(FontAwesome.heart_o,),
+              ),
               IconButton(onPressed: () {}, icon: Icon(FontAwesome.send,),),
             ],
           ),

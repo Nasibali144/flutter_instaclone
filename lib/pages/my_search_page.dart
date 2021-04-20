@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_icons/flutter_icons.dart';
 import 'package:flutter_instaclone/models/user_model.dart';
+import 'package:flutter_instaclone/services/data_service.dart';
 
 class MySearchPage extends StatefulWidget {
   @override
@@ -8,25 +10,63 @@ class MySearchPage extends StatefulWidget {
 
 class _MySearchPageState extends State<MySearchPage> {
   var searchController = TextEditingController();
-  List<User> users = new List();
+  List<User> items = new List();
+  bool isLoading = false;
 
+
+  void _apiSearchUsers(String keyword) {
+    setState(() {
+      isLoading = true;
+    });
+    DataService.searchUsers(keyword).then((users) => {
+      _respSearchUsers(users)
+    });
+  }
+
+  void _respSearchUsers(List<User> users) {
+    if (this.mounted) {
+      setState(() {
+        isLoading = false;
+        items = users;
+      });
+    }
+  }
+
+  void _apiFollowUser(User someone) async{
+    setState(() {
+      isLoading = true;
+    });
+    await DataService.followUser(someone);
+    setState(() {
+      someone.followed = true;
+      isLoading = false;
+    });
+    DataService.storePostsToMyFeed(someone);
+  }
+
+
+
+  void _apiUnFollowUser(User someone) async{
+    setState(() {
+      isLoading = true;
+    });
+    await DataService.unFollowUser(someone);
+    setState(() {
+      someone.followed = false;
+      isLoading = false;
+    });
+    DataService.removePostsFromMyFeed(someone);
+  }
 
   @override
   void initState() {
     super.initState();
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
-    users.add(User(fullname: "Nasibali", email: "abdiyevnasibali@gmail.com"));
+    _apiSearchUsers("");
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
@@ -39,45 +79,52 @@ class _MySearchPageState extends State<MySearchPage> {
         title: Text("Search", style: TextStyle(fontSize: 25, fontFamily: "Billabong", color: Colors.black),),
         centerTitle: true,
       ),
-      body: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          children: [
+      body: Stack(
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
 
-            // #searchuser
-            Container(
-              height: 45,
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              margin: EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(7),
-              ),
-              child: TextField(
-                controller: searchController,
-                onChanged: (input) {
-                  print(input);
-                },
-                style: TextStyle(color: Colors.black87),
-                decoration: InputDecoration(
-                  hintText: "Search",
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 15.0),
-                  border: InputBorder.none,
-                  icon: Icon(Icons.search, color: Colors.grey,),
+                // #searchuser
+                Container(
+                  height: 45,
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  margin: EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: (input) {
+                      print(input);
+                      _apiSearchUsers(input);
+                    },
+                    style: TextStyle(color: Colors.black87),
+                    decoration: InputDecoration(
+                      hintText: "Search",
+                      hintStyle: TextStyle(color: Colors.grey, fontSize: 15.0),
+                      border: InputBorder.none,
+                      icon: Icon(Icons.search, color: Colors.grey,),
+                    ),
+                  ),
                 ),
-              ),
-            ),
 
-            Expanded(
-              child: ListView.builder(
-                itemCount: users.length,
-                itemBuilder: (context, index) {
-                  return _itemOfUser(users[index]);
-                },
-              ),
-            )
-          ],
-        ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      return _itemOfUser(items[index]);
+                    },
+                  ),
+                )
+              ],
+            ),
+          ),
+
+          isLoading ? Center(child: CircularProgressIndicator()) : SizedBox.shrink(),
+        ],
       ),
     );
   }
@@ -96,8 +143,13 @@ class _MySearchPageState extends State<MySearchPage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(22.5),
-              child: Image(
+              child: user.img_url.isEmpty ? Image(
                 image: AssetImage("assets/images/ic_person.webp"),
+                height: 45,
+                width: 45,
+                fit: BoxFit.cover,
+              ) : Image(
+                image: NetworkImage(user.img_url),
                 height: 45,
                 width: 45,
                 fit: BoxFit.cover,
@@ -121,17 +173,30 @@ class _MySearchPageState extends State<MySearchPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Container(
-                  height: 30,
-                  width: 100,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(3),
-                    border: Border.all(color: Colors.grey, width: 1),
+                GestureDetector(
+                  onTap: (){
+                    if(user.followed){
+                      _apiUnFollowUser(user);
+                    }else{
+                      _apiFollowUser(user);
+                    }
+                  },
+                  child: Container(
+                    width: 100,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(
+                        width: 1,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    child: Center(
+                      child: user.followed ? Text("Following") : Text("Follow"),
+                    ),
                   ),
-                  child: Center(
-                    child: Text("Follow"),
-                  ),
-                )
+                ),
+
               ],
             ),
           ),
